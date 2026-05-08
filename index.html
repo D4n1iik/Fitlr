@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FitLog – Best Day</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+
+<style>
+*,*::before,*::after{
+  box-sizing:border-box;
+  margin:0;
+  padding:0;
+}
+
+:root{
+  --bg:#0d0d0f;
+  --surface:#17171a;
+  --card:#1e1e23;
+  --border:rgba(255,255,255,0.08);
+
+  --text:#f0f0ee;
+  --muted:#7a7a85;
+
+  --blue:#378ADD;
+  --blue-track:rgba(55,138,221,0.18);
+
+  --green:#639922;
+  --green-track:rgba(99,153,34,0.18);
+
+  --accent:#c8f04d;
+}
+
+body{
+  font-family:'DM Sans',sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  min-height:100vh;
+  max-width:480px;
+  margin:0 auto;
+  padding:0 0 2rem;
+}
+
+header{
+  padding:1.5rem;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+.logo{
+  font-family:'Syne',sans-serif;
+  font-weight:800;
+  font-size:1.5rem;
+}
+
+.logo span{
+  color:var(--accent);
+}
+
+.date{
+  font-size:0.75rem;
+  color:var(--muted);
+  background:var(--surface);
+  border:1px solid var(--border);
+  padding:4px 10px;
+  border-radius:100px;
+}
+
+#login-screen{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  min-height:80vh;
+  padding:2rem;
+  text-align:center;
+  gap:1.5rem;
+}
+
+#connect-btn{
+  padding:0.85rem 2rem;
+  background:var(--accent);
+  color:#0d0d0f;
+  border:none;
+  border-radius:14px;
+  font-family:'Syne',sans-serif;
+  font-size:1rem;
+  font-weight:700;
+  cursor:pointer;
+}
+
+#app-screen{
+  display:none;
+}
+
+.loading{
+  padding:4rem;
+  text-align:center;
+  color:var(--muted);
+}
+
+.spinner{
+  width:30px;
+  height:30px;
+  border:3px solid var(--border);
+  border-top-color:var(--accent);
+  border-radius:50%;
+  animation:spin 1s linear infinite;
+  margin:0 auto 1rem;
+}
+
+@keyframes spin{
+  to{
+    transform:rotate(360deg);
+  }
+}
+
+.sync-row{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin:0 1.5rem 1rem;
+}
+
+.sync-btn{
+  padding:0.5rem 1rem;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:10px;
+  color:var(--muted);
+  font-size:0.8rem;
+  cursor:pointer;
+}
+
+.ring-section{
+  padding:1.5rem 1.5rem 0;
+}
+
+.ring-wrap{
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  margin-bottom:2rem;
+}
+
+.legend{
+  display:flex;
+  flex-direction:column;
+  gap:15px;
+  margin-left:1.5rem;
+}
+
+.legend-item{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+
+.legend-dot{
+  width:10px;
+  height:10px;
+  border-radius:50%;
+}
+
+.legend-label{
+  font-size:0.7rem;
+  color:var(--muted);
+  text-transform:uppercase;
+}
+
+.legend-val{
+  font-family:'Syne',sans-serif;
+  font-size:1.1rem;
+  font-weight:700;
+}
+
+.stats-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+  padding:0 1.5rem;
+  margin-bottom:2rem;
+}
+
+.stat-card{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:16px;
+  padding:1.25rem 1rem;
+  text-align:center;
+}
+
+.stat-num{
+  font-family:'Syne',sans-serif;
+  font-size:1.3rem;
+  font-weight:700;
+  display:block;
+  margin:4px 0;
+}
+
+.stat-lbl{
+  font-size:0.65rem;
+  color:var(--muted);
+  text-transform:uppercase;
+}
+
+.chart-container{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:20px;
+  padding:1.5rem 1rem;
+  margin:0 1.5rem 1.5rem;
+}
+
+.chart-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:baseline;
+  margin-bottom:2rem;
+  padding:0 0.5rem;
+}
+
+.chart-title{
+  font-size:0.75rem;
+  color:var(--muted);
+  text-transform:uppercase;
+}
+
+.chart-avg{
+  font-family:'Syne';
+  color:var(--accent);
+}
+
+.chart-area{
+  position:relative;
+  height:220px;
+}
+
+.chart-grid{
+  position:absolute;
+  inset:0;
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between;
+  pointer-events:none;
+}
+
+.grid-line{
+  flex:1;
+  border-top:1px dashed rgba(255,255,255,0.08);
+  position:relative;
+}
+
+.grid-line span{
+  position:absolute;
+  right:0;
+  top:-10px;
+  font-size:0.55rem;
+  color:var(--muted);
+}
+
+.chart-bars{
+  height:100%;
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:6px;
+  position:relative;
+  z-index:2;
+}
+
+.bar-wrapper{
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:flex-end;
+  height:100%;
+  position:relative;
+}
+
+.bar-fill{
+  width:100%;
+  height:0%;
+  background:var(--blue-track);
+  border-radius:6px 6px 0 0;
+  transition:height 1s cubic-bezier(0.17,0.67,0.83,0.67);
+  min-height:4px;
+}
+
+.bar-fill.active{
+  background:var(--blue);
+}
+
+.bar-fill.best{
+  background:var(--accent)!important;
+}
+
+.bar-day{
+  margin-top:8px;
+  font-size:0.6rem;
+  color:var(--muted);
+  font-weight:bold;
+}
+
+.bar-val{
+  font-size:0.55rem;
+  font-family:'Syne';
+  margin-top:2px;
+}
+
+.crown{
+  position:absolute;
+  top:-24px;
+  font-size:1.1rem;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <div class="logo">Fit<span>Log</span></div>
+  <div class="date" id="hdr-date"></div>
+</header>
+
+<div id="login-screen">
+
+  <div style="font-size:4rem">👑</div>
+
+  <h2 style="font-family:'Syne'">
+    Witaj w FitLog
+  </h2>
+
+  <p style="color:var(--muted)">
+    Twoje cele w jednym miejscu.
+  </p>
+
+  <button id="connect-btn" onclick="signIn()">
+    Połącz z Google Fit
+  </button>
+
+</div>
+
+<div id="app-screen">
+
+  <div id="loading-state" class="loading">
+    <div class="spinner"></div>
+    Synchronizuję dane...
+  </div>
+
+  <div id="main-content" style="display:none">
+
+    <div class="sync-row">
+      <span id="sync-time" style="font-size:0.75rem;color:var(--muted)"></span>
+
+      <button class="sync-btn" onclick="fetchFitData()">
+        ↻ Odśwież
+      </button>
+    </div>
+
+    <div class="ring-section">
+
+      <div class="ring-wrap">
+
+        <svg width="160" height="160" viewBox="0 0 160 160">
+
+          <circle
+            cx="80"
+            cy="80"
+            r="70"
+            fill="none"
+            stroke="var(--blue-track)"
+            stroke-width="14"
+          />
+
+          <circle
+            cx="80"
+            cy="80"
+            r="52"
+            fill="none"
+            stroke="var(--green-track)"
+            stroke-width="14"
+          />
+
+          <circle
+            id="arc-steps"
+            cx="80"
+            cy="80"
+            r="70"
+            fill="none"
+            stroke="var(--blue)"
+            stroke-width="14"
+            stroke-linecap="round"
+            stroke-dasharray="440"
+            stroke-dashoffset="440"
+            transform="rotate(-90 80 80)"
+            style="transition:1s ease-out"
+          />
+
+          <circle
+            id="arc-cal"
+            cx="80"
+            cy="80"
+            r="52"
+            fill="none"
+            stroke="var(--green)"
+            stroke-width="14"
+            stroke-linecap="round"
+            stroke-dasharray="327"
+            stroke-dashoffset="327"
+            transform="rotate(-90 80 80)"
+            style="transition:1.2s ease-out"
+          />
+
+          <text
+            id="ctr-pct"
+            x="80"
+            y="85"
+            text-anchor="middle"
+            fill="white"
+            font-size="18"
+            font-weight="bold"
+            font-family="Syne"
+          >
+            0%
+          </text>
+
+        </svg>
+
+        <div class="legend">
+
+          <div class="legend-item">
+
+            <div class="legend-dot" style="background:var(--blue)"></div>
+
+            <div>
+              <div class="legend-label">Kroki</div>
+              <div class="legend-val" id="leg-steps" style="color:var(--blue)">0</div>
+            </div>
+
+          </div>
+
+          <div class="legend-item">
+
+            <div class="legend-dot" style="background:var(--green)"></div>
+
+            <div>
+              <div class="legend-label">Kalorie</div>
+              <div class="legend-val" id="leg-cal" style="color:var(--green)">0</div>
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+      <div class="stats-grid">
+
+        <div class="stat-card">
+          <span class="stat-lbl">Dzisiejsze kroki</span>
+          <span class="stat-num" id="st-steps" style="color:var(--blue)">0</span>
+          <span class="stat-lbl">Cel: 10 000</span>
+        </div>
+
+        <div class="stat-card">
+          <span class="stat-lbl">Spalone kalorie</span>
+          <span class="stat-num" id="st-cal" style="color:var(--green)">0</span>
+          <span class="stat-lbl">Cel: 500 kcal</span>
+        </div>
+
+      </div>
+
+    </div>
+
+    <div class="chart-container">
+
+      <div class="chart-header">
+
+        <span class="chart-title">
+          Ostatnie 7 dni
+        </span>
+
+        <span class="chart-avg" id="val-avg">
+          śr. 0
+        </span>
+
+      </div>
+
+      <div class="chart-area">
+
+        <div class="chart-grid"></div>
+
+        <div class="chart-bars" id="weekly-bars"></div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+
+<script>
+const CLIENT_ID =
+'72149566564-2m1rinft6vj3pshomjrjrl2rdn2jdjjh.apps.googleusercontent.com';
+
+const STEP_GOAL = 10000;
+const CAL_GOAL = 500;
+
+let accessToken = null;
+
+document.getElementById('hdr-date').textContent =
+new Date().toLocaleDateString('pl-PL',{
+  weekday:'short',
+  day:'numeric',
+  month:'short'
+});
+
+function signIn(){
+
+  const client =
+  google.accounts.oauth2.initTokenClient({
+
+    client_id:CLIENT_ID,
+
+    scope:'https://www.googleapis.com/auth/fitness.activity.read',
+
+    callback:(resp)=>{
+
+      if(resp.access_token){
+
+        accessToken = resp.access_token;
+
+        document.getElementById('login-screen').style.display='none';
+
+        document.getElementById('app-screen').style.display='block';
+
+        fetchFitData();
+      }
+    }
+  });
+
+  client.requestAccessToken();
+}
+
+async function fetchFitData(){
+
+  document.getElementById('loading-state').style.display='block';
+
+  document.getElementById('main-content').style.display='none';
+
+  const now = new Date();
+
+  const start = new Date();
+
+  start.setDate(now.getDate()-6);
+
+  start.setHours(0,0,0,0);
+
+  const body = {
+
+    aggregateBy:[
+      {dataTypeName:'com.google.step_count.delta'},
+      {dataTypeName:'com.google.calories.expended'}
+    ],
+
+    bucketByTime:{
+      durationMillis:86400000
+    },
+
+    startTimeMillis:start.getTime(),
+
+    endTimeMillis:now.getTime()+1000*60*60
+  };
+
+  try{
+
+    const res = await fetch(
+      'https://www.googleapis.com/fitness/v1/users/me/dataset:aggregate',
+      {
+        method:'POST',
+
+        headers:{
+          Authorization:'Bearer '+accessToken,
+          'Content-Type':'application/json'
+        },
+
+        body:JSON.stringify(body)
+      }
+    );
+
+    const data = await res.json();
+
+    processData(data.bucket);
+
+  }catch(e){
+
+    alert('Błąd pobierania danych.');
+  }
+
+  document.getElementById('loading-state').style.display='none';
+
+  document.getElementById('main-content').style.display='block';
+}
+
+function processData(buckets){
+
+  const container =
+  document.getElementById('weekly-bars');
+
+  container.innerHTML = '';
+
+  let totalSteps = 0;
+  let highestSteps = 0;
+
+  const days =
+  ['Nd','Pn','Wt','Śr','Cz','Pt','So'];
+
+  const todayStr =
+  new Date().toDateString();
+
+  const history = buckets.map(b=>{
+
+    let s = 0;
+    let c = 0;
+
+    b.dataset.forEach(ds=>{
+
+      ds.point.forEach(pt=>{
+
+        if(ds.dataSourceId.includes('step_count')){
+          s += pt.value[0].intVal || 0;
+        }
+
+        if(ds.dataSourceId.includes('calories')){
+          c += Math.round(pt.value[0].fpVal || 0);
+        }
+
+      });
+
+    });
+
+    if(s > highestSteps){
+      highestSteps = s;
+    }
+
+    totalSteps += s;
+
+    return{
+      steps:s,
+      calories:c,
+      date:new Date(parseInt(b.startTimeMillis))
+    };
+  });
+
+  const chartScale =
+  Math.ceil(highestSteps / 10000) * 10000 || 10000;
+
+  const chartGrid =
+  document.querySelector('.chart-grid');
+
+  chartGrid.innerHTML = '';
+
+  for(let i = chartScale; i >= 0; i -= 10000){
+
+    chartGrid.innerHTML += `
+      <div class="grid-line">
+        <span>
+          ${i === 0 ? '0' : (i/1000)+'k kroków'}
+        </span>
+      </div>
+    `;
+  }
+
+  history.forEach((d,index)=>{
+
+    const heightPct =
+    Math.max((d.steps/chartScale)*100,3);
+
+    const isToday =
+    d.date.toDateString() === todayStr;
+
+    const isBest =
+    d.steps === Math.max(...history.map(x=>x.steps))
+    && d.steps > 0;
+
+    const barHtml = `
+      <div class="bar-wrapper">
+
+        ${isBest ? '<div class="crown">👑</div>' : ''}
+
+        <div
+          id="bar-${index}"
+          class="bar-fill ${isToday ? 'active' : ''} ${isBest ? 'best' : ''}"
+          style="height:0%"
+        ></div>
+
+        <div class="bar-day">
+          ${days[d.date.getDay()]}
+        </div>
+
+        <div class="bar-val">
+          ${d.steps.toLocaleString('pl-PL')}
+        </div>
+
+      </div>
+    `;
+
+    container.innerHTML += barHtml;
+
+    setTimeout(()=>{
+
+      const el =
+      document.getElementById(`bar-${index}`);
+
+      if(el){
+        el.style.height = heightPct + '%';
+      }
+
+    },100 + (index*80));
+
+    if(isToday){
+      updateUI(d.steps,d.calories);
+    }
+
+  });
+
+  document.getElementById('val-avg').textContent =
+  `śr. ${Math.round(totalSteps/history.length).toLocaleString('pl-PL')}`;
+
+  document.getElementById('sync-time').textContent =
+  'Ostatnia synch.: ' +
+  new Date().toLocaleTimeString('pl-PL',{
+    hour:'2-digit',
+    minute:'2-digit'
+  });
+}
+
+function updateUI(steps,cals){
+
+  const sP =
+  Math.min(steps/STEP_GOAL,1);
+
+  const cP =
+  Math.min(cals/CAL_GOAL,1);
+
+  document.getElementById('arc-steps').style.strokeDashoffset =
+  440 - (sP * 440);
+
+  document.getElementById('arc-cal').style.strokeDashoffset =
+  327 - (cP * 327);
+
+  document.getElementById('ctr-pct').textContent =
+  Math.round(((sP+cP)/2)*100) + '%';
+
+  const stepStr =
+  steps.toLocaleString('pl-PL');
+
+  document.getElementById('leg-steps').textContent =
+  stepStr;
+
+  document.getElementById('leg-cal').textContent =
+  cals.toLocaleString('pl-PL') + ' kcal';
+
+  document.getElementById('st-steps').textContent =
+  stepStr;
+
+  document.getElementById('st-cal').textContent =
+  cals.toLocaleString('pl-PL');
+}
+</script>
+
+</body>
+</html>
